@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ViewState, DailyRecord, createDefaultRecord } from './types';
 import DeepFocus from './components/DeepFocus';
 import MeditationTimer from './components/MeditationTimer';
 import { generateDailyBriefing } from './services/geminiService';
-import { getRecordForDate, saveRecord, getAllHistory } from './utils/storage';
+import { getRecordForDate, saveRecord, getAllHistory, getRawDataForExport, importRawData } from './utils/storage';
 import { 
   BookOpen, Flame, Scale, Moon, Calendar, 
   Utensils, Coffee, Sun, Dumbbell, History, 
-  ChevronRight, ChevronLeft, Edit3, Flower, Sunrise, Sunset, Play 
+  ChevronRight, ChevronLeft, Edit3, Flower, Sunrise, Sunset, Play,
+  Download, Upload, FileJson, AlertCircle
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -112,6 +113,51 @@ const App: React.FC = () => {
     setCurrentDate(date.toISOString().split('T')[0]);
   };
 
+  // --- Backup/Restore Handlers ---
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExport = () => {
+    const dataStr = getRawDataForExport();
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `rhythm_backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      if (content) {
+        const success = importRawData(content);
+        if (success) {
+          alert('数据恢复成功！页面将刷新。');
+          window.location.reload();
+        } else {
+          alert('数据文件格式错误，请使用正确的备份文件。');
+        }
+      }
+    };
+    reader.readAsText(file);
+    // Reset input
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   // --- Components ---
 
   const ToggleButton = ({ active, onClick, icon, label, colorClass }: any) => (
@@ -149,7 +195,7 @@ const App: React.FC = () => {
     };
 
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 p-6">
+      <div className="min-h-screen bg-slate-950 text-slate-100 p-6 pb-20">
         <header className="flex items-center justify-between mb-8">
           <button onClick={() => setView(ViewState.HOME)} className="p-2 bg-slate-900 rounded-lg border border-slate-800 hover:bg-slate-800 transition-colors">
              <ChevronLeft size={20} />
@@ -158,7 +204,7 @@ const App: React.FC = () => {
           <div className="w-10"></div>
         </header>
 
-        <div className="space-y-4">
+        <div className="space-y-4 mb-12">
           {history.length === 0 && <p className="text-center text-slate-500 mt-10">暂无记录</p>}
           {history.map(day => (
             <div key={day.date} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-3 shadow-sm">
@@ -237,6 +283,43 @@ const App: React.FC = () => {
               )}
             </div>
           ))}
+        </div>
+
+        {/* Data Backup & Restore Section */}
+        <div className="mt-8 border-t border-slate-800 pt-8">
+            <h3 className="text-sm font-bold text-slate-500 uppercase mb-4 flex items-center gap-2">
+                <FileJson size={16} /> 数据备份与恢复
+            </h3>
+            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+                <div className="flex gap-4">
+                    <button 
+                        onClick={handleExport}
+                        className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 flex items-center justify-center gap-2 text-sm font-medium transition-colors"
+                    >
+                        <Download size={16} />
+                        导出备份
+                    </button>
+                    <button 
+                        onClick={handleImportClick}
+                        className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 flex items-center justify-center gap-2 text-sm font-medium transition-colors"
+                    >
+                        <Upload size={16} />
+                        导入数据
+                    </button>
+                </div>
+                <div className="mt-3 flex items-start gap-2 text-xs text-slate-500">
+                    <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                    <p>数据仅保存在浏览器缓存中。为防止丢失，建议定期导出备份。导入备份将覆盖当前所有数据。</p>
+                </div>
+                {/* Hidden File Input */}
+                <input 
+                    type="file" 
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept=".json"
+                    className="hidden"
+                />
+            </div>
         </div>
       </div>
     );

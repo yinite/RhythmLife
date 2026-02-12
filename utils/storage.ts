@@ -71,3 +71,32 @@ export const getAllHistory = (): DailyRecord[] => {
     return [];
   }
 };
+
+// --- Backup & Restore Utilities ---
+
+export const getRawDataForExport = (): string => {
+  return localStorage.getItem(STORAGE_KEY) || '{}';
+};
+
+export const importRawData = (jsonString: string): boolean => {
+  try {
+    const parsed = JSON.parse(jsonString);
+    // Basic validation: check if it looks like an object
+    if (typeof parsed !== 'object' || parsed === null) {
+      return false;
+    }
+    
+    // Check if at least one value looks like a record (has a date field)
+    const keys = Object.keys(parsed);
+    if (keys.length > 0) {
+      const firstRecord = parsed[keys[0]];
+      if (!firstRecord.date) return false;
+    }
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+    return true;
+  } catch (e) {
+    console.error("Import failed", e);
+    return false;
+  }
+};
