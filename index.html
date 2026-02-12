@@ -2,7 +2,18 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    
+    <!-- PWA Settings for iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Rhythm" />
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="https://placehold.co/180x180/0f172a/38bdf8.png?text=R" />
+    <link rel="manifest" href="/manifest.json" />
+
     <title>Rhythm (律动)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -12,7 +23,19 @@
         background-color: #0f172a; /* Slate 900 */
         color: #f1f5f9; /* Slate 100 */
         overflow-x: hidden;
+        /* Ensure app fills screen on mobile */
+        min-height: 100vh;
+        min-height: -webkit-fill-available;
       }
+      html {
+        height: -webkit-fill-available;
+      }
+      
+      /* Safe area adjustment for notched devices in standalone mode */
+      header {
+        padding-top: max(1rem, env(safe-area-inset-top)) !important;
+      }
+
       /* Custom scrollbar for webkit */
       ::-webkit-scrollbar {
         width: 6px;
